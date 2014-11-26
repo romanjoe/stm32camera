@@ -1,5 +1,14 @@
 #include "stm32f4xx_i2c.h"
 
+void delay_ms(uint32_t volatile delay_time_ms)
+{
+    uint32_t delay_time = 0;
+
+    delay_time = (SystemCoreClock / 10000) * delay_time_ms;
+
+    for (; delay_time != 0; delay_time--);
+}
+
 /**
  *
  * @param I2Cx - I2C peripheral module number
