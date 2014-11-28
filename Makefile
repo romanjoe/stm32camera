@@ -3,10 +3,15 @@
 STLINK=~/dev/stm32/stlink
 
 # Put your source files here (or *.c, etc)
-SRCS=main.c system_stm32f4xx.c
-
+SRCS=main.c \
+	system_stm32f4xx.c \
+	i2c_ops.c \
+	$(STM_COMMON)/Libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_gpio.c \
+	$(STM_COMMON)/Libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_rcc.c \
+	$(STM_COMMON)/Libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_i2c.c \
+	$(STM_COMMON)/Libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_dcmi.c
 # Binaries will be generated with this name (.elf, .bin, .hex, etc)
-PROJ_NAME=blinky
+PROJ_NAME=mco
 
 # Put your STM32F4 library code directory here
 STM_COMMON=/home/romanjoe/dev/stm32/stm32_discovery_arm_gcc/STM32F4-Discovery_FW_V1.1.0
@@ -17,7 +22,7 @@ STM_COMMON=/home/romanjoe/dev/stm32/stm32_discovery_arm_gcc/STM32F4-Discovery_FW
 CC=arm-none-eabi-gcc
 OBJCOPY=arm-none-eabi-objcopy
 
-CFLAGS  = -g -O2 -Wall -Tstm32_flash.ld
+CFLAGS  = -g -O2 -Wall -Tstm32_flash.ld -DUSE_STDPERIPH_DRIVER
 CFLAGS += -mlittle-endian -mthumb -mcpu=cortex-m4 -mthumb-interwork
 CFLAGS += -mfloat-abi=hard -mfpu=fpv4-sp-d16
 CFLAGS += -I.
