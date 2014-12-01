@@ -5,7 +5,7 @@
 #ifndef _OV7670_H_
 #define _OV7670_H_
 
-#include "i2c_routines.h"
+#include "i2c_ops.h"
 
 
 #define ov7670_cntr_port GPIOB
@@ -37,7 +37,7 @@ FlagStatus ov7670_capture_done(void);
 void ov7670_write_reg(int32_t addr, int32_t data);
 int32_t ov7670_read_reg(int32_t addr);
 void ov7670_reset(void);
-int32_t ov7670_init(uint8_t * format, int32_t n);
+uint32_t ov7670_init();
 void ov7670_vsync_handler(void);
 void ov7670_href_handler(void);
 

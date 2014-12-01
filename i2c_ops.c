@@ -2,7 +2,7 @@
 #include "stm32f4xx_i2c.h"
 
 #define SLAVE_ADDRESS 0x42
-#define i2c_dev I2C2
+
 /* This function issues a start condition and
  * transmits the slave address + R/W bit
  *
@@ -17,7 +17,7 @@
 void Delay(uint32_t volatile DelayTime_uS)
 {
 	uint32_t DelayTime = 0;
-	DelayTime = (SystemCoreClock/10000)*DelayTime_uS;
+	DelayTime = (SystemCoreClock/1000000)*DelayTime_uS;
 	for (; DelayTime!=0; DelayTime--);
 }
 
@@ -98,40 +98,40 @@ void I2C_stop(I2C_TypeDef* I2Cx){
 }
 
 
-uint8_t I2C_writereg(uint8_t reg, uint8_t data)
+uint8_t I2C_writereg(uint32_t reg, uint32_t data)
 {
 	uint8_t tmp;
 
 	I2C_start(i2c_dev, SLAVE_ADDRESS, I2C_Direction_Transmitter); // start a transmission in Master transmitter mode
-	I2C_write(i2c_dev, reg); // write one byte to the slave
+	I2C_write(i2c_dev, (uint8_t) reg); // write one byte to the slave
 	Delay(100);
-	I2C_write(i2c_dev, data); // write one byte to the slave
+	I2C_write(i2c_dev, (uint8_t) data); // write one byte to the slave
 	I2C_stop(i2c_dev); // stop the transmission
-//	Delay(100);
+	Delay(100);
 	I2C_start(i2c_dev, SLAVE_ADDRESS, I2C_Direction_Receiver); // start a transmission in Master receiver mode
 	tmp = I2C_read_nack(i2c_dev);
 	I2C_stop(i2c_dev); // stop the transmission
-//	Delay(100);
+	Delay(100);
 
 	return tmp;
 }
 
 
-uint8_t I2C_readreg(uint8_t reg)
+uint8_t I2C_readreg(uint32_t reg)
 {
 	uint8_t tmp;
 
 	I2C_start(i2c_dev, SLAVE_ADDRESS, I2C_Direction_Transmitter); // start a transmission in Master transmitter mode
-	I2C_write(i2c_dev, reg); // write one byte to the slave
+	I2C_write(i2c_dev, (uint8_t) reg); // write one byte to the slave
 	I2C_stop(i2c_dev); // stop the transmission
 
-//	Delay(100);
+	Delay(100);
 
 	I2C_start(i2c_dev, SLAVE_ADDRESS, I2C_Direction_Receiver); // start a transmission in Master receiver mode
 	tmp = I2C_read_nack(i2c_dev);
 	I2C_stop(i2c_dev); // stop the transmission
 
-//	Delay(100);
+	Delay(100);
 
 	return tmp;
 }
