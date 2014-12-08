@@ -1,5 +1,6 @@
 #include "stm32f4xx_gpio.h"
 #include "stm32f4xx_rcc.h"
+#include "stm32f4xx_tim.h"
 #include "stm32f4xx_i2c.h"
 #include "stm32f4xx_dcmi.h"
 #include "stm32f4xx_dma.h"
@@ -42,16 +43,19 @@ void camera_init(void)
     GPIO_InitTypeDef dcmi_gpioa_init;
     dcmi_gpioa_init.GPIO_Pin = GPIO_Pin_4 | GPIO_Pin_6;
     dcmi_gpioa_init.GPIO_Mode = GPIO_Mode_AF;
+    dcmi_gpioa_init.GPIO_OType = GPIO_OType_PP;
+    dcmi_gpioa_init.GPIO_PuPd = GPIO_PuPd_NOPULL;
+    dcmi_gpioa_init.GPIO_Speed = GPIO_Speed_50MHz;
     GPIO_Init(GPIOA, &dcmi_gpioa_init);
 
     GPIO_InitTypeDef dcmi_gpiob_init;
-    dcmi_gpioa_init.GPIO_Pin = GPIO_Pin_7 | GPIO_Pin_6 | GPIO_Pin_8 | GPIO_Pin_9;
-    dcmi_gpioa_init.GPIO_Mode = GPIO_Mode_AF;
+    dcmi_gpiob_init.GPIO_Pin = GPIO_Pin_7 | GPIO_Pin_6 | GPIO_Pin_8 | GPIO_Pin_9;
+    dcmi_gpiob_init.GPIO_Mode = GPIO_Mode_AF;
     GPIO_Init(GPIOB, &dcmi_gpiob_init);
 
     GPIO_InitTypeDef dcmi_gpioc_init;
-    dcmi_gpioa_init.GPIO_Pin = GPIO_Pin_7 | GPIO_Pin_6 | GPIO_Pin_8 | GPIO_Pin_9 | GPIO_Pin_11;
-    dcmi_gpioa_init.GPIO_Mode = GPIO_Mode_AF;
+    dcmi_gpioc_init.GPIO_Pin = GPIO_Pin_7 | GPIO_Pin_6 | GPIO_Pin_8 | GPIO_Pin_9 | GPIO_Pin_11;
+    dcmi_gpioc_init.GPIO_Mode = GPIO_Mode_AF;
     GPIO_Init(GPIOC, &dcmi_gpioc_init);
 
     GPIO_PinAFConfig(GPIOA, GPIO_PinSource4, GPIO_AF_DCMI);
@@ -87,6 +91,83 @@ void camera_init(void)
     mco_Init.GPIO_OType = GPIO_OType_PP;
 
     GPIO_Init(GPIOA, &mco_Init);
+
+    /*****************************************************************/
+
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_TIM9, ENABLE);
+
+	/* PA2 = TIM9_CH1
+	 * PA3 = TIM9_CH2 */
+	GPIO_InitTypeDef tim_gpio_init;
+	//GPIO_StructInit(&tim_gpio_init);
+	tim_gpio_init.GPIO_Pin = GPIO_Pin_2 | GPIO_Pin_3;
+	tim_gpio_init.GPIO_OType = GPIO_OType_PP;
+	tim_gpio_init.GPIO_Speed = GPIO_Speed_50MHz;
+	tim_gpio_init.GPIO_Mode = GPIO_Mode_AF;
+	GPIO_Init(GPIOA, &tim_gpio_init);
+	GPIO_PinAFConfig(GPIOA, GPIO_PinSource2, GPIO_AF_TIM9);
+	GPIO_PinAFConfig(GPIOA, GPIO_PinSource3, GPIO_AF_TIM9);
+
+	/* EXT SOURCE CONFIG  */
+	/* configure timer ch2 to detect rising edges on TI2 */
+	TIM9->CCMR1 |= TIM_CCMR1_CC2S_0;
+	TIM9->CCMR1 &= ~(TIM_CCMR1_CC2S_1);
+	/* selecting rising edge polarity for input clock source */
+	TIM9->CCER &= ~(TIM_CCER_CC2P | TIM_CCER_CC2NP);
+	/* configure timer in external clock mode 1 */
+	TIM9->SMCR |= TIM_SMCR_SMS;
+	/* select TI2 as the trigger input source */
+	TIM9->SMCR &= ~(TIM_SMCR_TS_0);
+	TIM9->SMCR |= (TIM_SMCR_TS_1 | TIM_SMCR_TS_2);
+////================================ PWM mode test =================
+//	TIM9->ARR &= 0;
+//	TIM9->ARR |= 1568;
+//	/* configure timer to enable auto-reload
+//	 * and choose direction downcount */
+//	TIM9->CR1 |= TIM_CR1_ARPE;
+//	/* provide capture value for channel 1 */
+//	TIM9->CCR1 |= 1280;
+//	/* choose OC1 to work in pwm generation mode */
+//	TIM9->CCMR1 &= ~(TIM_CCMR1_OC1M_0);
+//	TIM9->CCMR1 |= (TIM_CCMR1_OC1M_1 | TIM_CCMR1_OC1M_2);
+//	/* enable preload register */
+//	TIM9->CCMR1 |= TIM_CCMR1_OC1PE;
+//	/* select activity high polarity */
+//	TIM9->CCER &= ~(TIM_CCER_CC1P);
+//	/* enable the output */
+//	TIM9->CCER |= TIM_CCER_CC1E;
+//	/* enable interrupt event on compare channel 1 */
+//	TIM9->EGR |= TIM_EGR_CC1G | TIM_EGR_UG;
+///////////////////////////////////// END PWM MODE TEST
+
+// =========================================================
+	TIM9->ARR &= 0;
+	TIM9->ARR |= 1280;
+	/* configure timer to enable auto-reload
+	 * and choose direction downcount */
+	TIM9->CR1 |= TIM_CR1_ARPE | TIM_CR1_DIR;
+	/* provide capture value for channel 1 */
+	TIM9->CCR1 |= 1;
+	/* choose OC1 to toggling on compare */
+	TIM9->CCMR1 &= ~(TIM_CCMR1_OC1M_2);
+	TIM9->CCMR1 |= (TIM_CCMR1_OC1M_1 | TIM_CCMR1_OC1M_0);
+	/* disable preload register */
+	TIM9->CCMR1 &= ~(TIM_CCMR1_OC1PE);
+	/* select activity high polarity */
+	TIM9->CCER &= ~(TIM_CCER_CC1P);
+	/* enable the output */
+	TIM9->CCER |= TIM_CCER_CC1E;
+	/* enable interrupt event on compare channel 1 */
+	TIM9->DIER |= TIM_DIER_CC1IE;
+// =========================================================
+	NVIC_InitTypeDef tim9_nvic_init;
+	tim9_nvic_init.NVIC_IRQChannel = TIM1_BRK_TIM9_IRQn;
+	tim9_nvic_init.NVIC_IRQChannelCmd = DISABLE;
+	tim9_nvic_init.NVIC_IRQChannelPreemptionPriority = 1;
+	tim9_nvic_init.NVIC_IRQChannelSubPriority = 1;
+	NVIC_Init(&tim9_nvic_init);
+
+    /*****************************************************************/
 
     GPIO_PinAFConfig(GPIOA, GPIO_PinSource8, GPIO_AF_MCO);
 
@@ -129,6 +210,29 @@ void camera_init(void)
     // enable I2C interface
     I2C_Cmd(I2C2, ENABLE);
 }
+
+void TIM1_BRK_TIM9_IRQHandler(void)
+{
+	static volatile uint32_t flag = 0;
+
+	if(TIM_GetITStatus(TIM9, TIM_IT_CC1) != RESET)
+	{
+		if(flag == 0)
+		{
+			TIM9->ARR &= 0;
+			TIM9->ARR |= 288;
+			flag = 1;
+		}
+		else
+		{
+			TIM9->ARR &= 0;
+			TIM9->ARR |= 1280;
+			flag = 0;
+		}
+	TIM_ClearITPendingBit(TIM9, TIM_IT_CC1);
+	}
+}
+
 
 //void i2c_init(void)
 //{
@@ -221,6 +325,8 @@ int main(void)
     if(c == 0x76)
     {
         ov7670_init();
+        TIM9->CR1 |= TIM_CR1_CEN;
+        NVIC_EnableIRQ(TIM1_BRK_TIM9_IRQn);
         GPIO_SetBits(GPIOD, GPIO_Pin_13);
     }
 
