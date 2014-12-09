@@ -54,7 +54,7 @@
   *-----------------------------------------------------------------------------
   *        APB1 Prescaler                         | 8
   *-----------------------------------------------------------------------------
-  *        APB2 Prescaler                         | 2
+  *        APB2 Prescaler                         | 8
   *-----------------------------------------------------------------------------
   *        HSE Frequency(Hz)                      | 8000000
   *-----------------------------------------------------------------------------
@@ -376,8 +376,8 @@ static void SetSysClock(void)
     /* HCLK = SYSCLK / 1*/
     RCC->CFGR |= RCC_CFGR_HPRE_DIV1;
       
-    /* PCLK2 = HCLK / 2*/
-    RCC->CFGR |= RCC_CFGR_PPRE2_DIV2;
+    /* PCLK2 = HCLK / 8*/
+    RCC->CFGR |= RCC_CFGR_PPRE2_DIV8;
     
     /* PCLK1 = HCLK / 8*/
     RCC->CFGR |= RCC_CFGR_PPRE1_DIV8;
@@ -560,7 +560,6 @@ void SystemInit_ExtMemCtl(void)
   * @}
   */    
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
-
 
 
 ///**

@@ -99,15 +99,27 @@ void camera_init(void)
 
 	/* PB4 = TIM3_CH1
 	 * PB5 = TIM3_CH2 */
-	GPIO_InitTypeDef tim_gpio_init;
+	GPIO_InitTypeDef tim3_gpio_init;
 	//GPIO_StructInit(&tim_gpio_init);
-	tim_gpio_init.GPIO_Pin = GPIO_Pin_5 | GPIO_Pin_4;
-	tim_gpio_init.GPIO_OType = GPIO_OType_PP;
-	tim_gpio_init.GPIO_Speed = GPIO_Speed_50MHz;
-	tim_gpio_init.GPIO_Mode = GPIO_Mode_AF;
-	GPIO_Init(GPIOB, &tim_gpio_init);
+	tim3_gpio_init.GPIO_Pin = GPIO_Pin_5 | GPIO_Pin_4;
+	tim3_gpio_init.GPIO_OType = GPIO_OType_PP;
+	tim3_gpio_init.GPIO_Speed = GPIO_Speed_50MHz;
+	tim3_gpio_init.GPIO_Mode = GPIO_Mode_AF;
+	GPIO_Init(GPIOB, &tim3_gpio_init);
 	GPIO_PinAFConfig(GPIOB, GPIO_PinSource5, GPIO_AF_TIM3);
 	GPIO_PinAFConfig(GPIOB, GPIO_PinSource4, GPIO_AF_TIM3);
+
+	/* PA2 = TIM9_CH1
+	 * PA3 = TIM9_CH2 */
+	GPIO_InitTypeDef tim9_gpio_init;
+	//GPIO_StructInit(&tim_gpio_init);
+	tim9_gpio_init.GPIO_Pin = GPIO_Pin_2 | GPIO_Pin_3;
+	tim9_gpio_init.GPIO_OType = GPIO_OType_PP;
+	tim9_gpio_init.GPIO_Speed = GPIO_Speed_50MHz;
+	tim9_gpio_init.GPIO_Mode = GPIO_Mode_AF;
+	GPIO_Init(GPIOA, &tim9_gpio_init);
+	GPIO_PinAFConfig(GPIOA, GPIO_PinSource2, GPIO_AF_TIM9);
+	GPIO_PinAFConfig(GPIOA, GPIO_PinSource3, GPIO_AF_TIM9);
 
 	/* EXT SOURCE CONFIG  */
 	/* configure TIM3 master mode to use OC1REF signal as trigger output */
@@ -118,11 +130,11 @@ void camera_init(void)
 	TIM3->CCMR1 &= ~(TIM_CCMR1_OC1M_1 | TIM_CCMR1_OC1M_2);
 	/* configure compare register 1 to match on 20*tline  */
 	TIM3->CCR1 |= 20;
-	/* set master tim prescaler to match 1*tline */
+	/* set master tim prescaler to match 1*tline = 1568, need to sub 1 for PSC */
 	TIM3->PSC |= 1567;
 	/* configure autoreload value and enable it */
 	TIM3->ARR &= 0;
-	TIM3->ARR |= 509;
+	TIM3->ARR |= 510;
 	TIM3->CR1 |= TIM_CR1_ARPE;
 	/* configure master to reset on rising edge of input trigger SMS == 100 */
 	TIM3->SMCR |= TIM_SMCR_SMS_2;
@@ -130,31 +142,44 @@ void camera_init(void)
 	/* configure master to use TI2FP2 as input trigger TS == 110 */
 	TIM3->SMCR |= (TIM_SMCR_TS_2 | TIM_SMCR_TS_1);
 	TIM3->SMCR &= ~(TIM_SMCR_TS_0);
+
+	/* enable delay on trigger input for sync between master and slave */
+	TIM3->SMCR |= TIM_SMCR_MSM;
+
 	/* enable output to  on compare on channel 1 */
 	TIM3->CCER |= TIM_CCER_CC1E;
 	/* enable interrupt on compare channel 1 */
 	TIM3->DIER |= TIM_DIER_CC1IE;
 
-////================================ PWM mode test =================
-//	TIM9->ARR &= 0;
-//	TIM9->ARR |= 1568;
-//	/* configure timer to enable auto-reload
-//	 * and choose direction downcount */
-//	TIM9->CR1 |= TIM_CR1_ARPE;
-//	/* provide capture value for channel 1 */
-//	TIM9->CCR1 |= 1280;
-//	/* choose OC1 to work in pwm generation mode */
-//	TIM9->CCMR1 &= ~(TIM_CCMR1_OC1M_0);
-//	TIM9->CCMR1 |= (TIM_CCMR1_OC1M_1 | TIM_CCMR1_OC1M_2);
-//	/* enable preload register */
-//	TIM9->CCMR1 |= TIM_CCMR1_OC1PE;
-//	/* select activity high polarity */
-//	TIM9->CCER &= ~(TIM_CCER_CC1P);
-//	/* enable the output */
-//	TIM9->CCER |= TIM_CCER_CC1E;
-//	/* enable interrupt event on compare channel 1 */
-//	TIM9->EGR |= TIM_EGR_CC1G | TIM_EGR_UG;
-///////////////////////////////////// END PWM MODE TEST
+//================================ TIM9 triggered input =============
+	/* configure input trigger source 1 - ITR1, TS == 001 */
+	TIM9->SMCR |= TIM_SMCR_TS_0;
+	TIM9->SMCR &= ~(TIM_SMCR_TS_1 | TIM_SMCR_TS_2);
+	/* configure TIM9 in gated mode SMS == 101 */
+	TIM9->SMCR &= ~TIM_SMCR_SMS_1;
+	TIM9->SMCR |= (TIM_SMCR_SMS_0 | TIM_SMCR_SMS_2);
+//================================ PWM mode 1 on output ==============
+	TIM9->ARR &= 0;
+	TIM9->ARR |= 1567;
+	/* configure timer to enable auto-reload
+	 * and choose direction downcount */
+	TIM9->CR1 |= TIM_CR1_ARPE;
+	/* provide capture value for channel 1 */
+	TIM9->CCR1 |= 1276;
+	/* choose OC1 to work in PWM generation mode 1 */
+	TIM9->CCMR1 &= ~(TIM_CCMR1_OC1M_0);
+	TIM9->CCMR1 |= (TIM_CCMR1_OC1M_1 | TIM_CCMR1_OC1M_2);
+	/* enable preload register */
+	TIM9->CCMR1 |= TIM_CCMR1_OC1PE;
+	/* select activity high polarity */
+	TIM9->CCER &= ~(TIM_CCER_CC1P);
+	/* enable the output */
+	TIM9->CCER |= TIM_CCER_CC1E;
+	/* enable interrupt event on compare channel 1 */
+	TIM9->EGR |= TIM_EGR_CC1G | TIM_EGR_UG;
+	//=========================== END PWM MODE TEST ==================
+	/* enable TIM9 to count */
+	TIM9->CR1 |= TIM_CR1_CEN;
 
 // ================================= COMPARE MODE ==================
 //	TIM9->ARR &= 0;
