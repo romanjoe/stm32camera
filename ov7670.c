@@ -7,7 +7,11 @@ uint32_t ov7670_init()
 	if (I2C_readreg(REG_PID) != 0x76) {
 		return 1;
 	}
-	//I2C_writereg(REG_COM10, COM10_PCLK_HB);
+	I2C_writereg(REG_COM7, COM7_RESET); /* reset to default values */
+	I2C_writereg(REG_CLKRC, CLK_EXT);
+	I2C_writereg(REG_COM7, COM7_FMT_VGA | COM7_RGB); /* output format: RGB */
+
+	I2C_writereg(REG_COM10, COM10_PCLK_HB); /* set pclk to switch only when data is valid */
 
 	return 0;
 }

@@ -121,7 +121,7 @@ void camera_init(void)
 	GPIO_PinAFConfig(GPIOA, GPIO_PinSource2, GPIO_AF_TIM9);
 	GPIO_PinAFConfig(GPIOA, GPIO_PinSource3, GPIO_AF_TIM9);
 
-	/* EXT SOURCE CONFIG  */
+//================================ TIM3 triggered input =============
 	/* configure TIM3 master mode to use OC1REF signal as trigger output */
 	TIM3->CR2 |= (TIM_CR2_MMS_2);
 	TIM3->CR2 &= ~(TIM_CR2_MMS_1 | TIM_CR2_MMS_0);
@@ -131,10 +131,10 @@ void camera_init(void)
 	/* configure compare register 1 to match on 20*tline  */
 	TIM3->CCR1 |= 20;
 	/* set master tim prescaler to match 1*tline = 1568, need to sub 1 for PSC */
-	TIM3->PSC |= 1567;
+	TIM3->PSC |= (1567 * 2);
 	/* configure autoreload value and enable it */
 	TIM3->ARR &= 0;
-	TIM3->ARR |= 510;
+	TIM3->ARR |= 508;
 	TIM3->CR1 |= TIM_CR1_ARPE;
 	/* configure master to reset on rising edge of input trigger SMS == 100 */
 	TIM3->SMCR |= TIM_SMCR_SMS_2;
@@ -148,38 +148,67 @@ void camera_init(void)
 
 	/* enable output to  on compare on channel 1 */
 	TIM3->CCER |= TIM_CCER_CC1E;
+
+	/* test output polarity low */
+	TIM3->CCER &= ~(TIM_CCER_CC1P);
+
 	/* enable interrupt on compare channel 1 */
 	TIM3->DIER |= TIM_DIER_CC1IE;
+//============================== END PWM MODE TEST ==================
 
 //================================ TIM9 triggered input =============
-	/* configure input trigger source 1 - ITR1, TS == 001 */
+	/* configure input reset source 1 - ITR1, TS == 001 */
 	TIM9->SMCR |= TIM_SMCR_TS_0;
 	TIM9->SMCR &= ~(TIM_SMCR_TS_1 | TIM_SMCR_TS_2);
-	/* configure TIM9 in gated mode SMS == 101 */
-	TIM9->SMCR &= ~TIM_SMCR_SMS_1;
-	TIM9->SMCR |= (TIM_SMCR_SMS_0 | TIM_SMCR_SMS_2);
+
+	/* configure TIM9 in reset mode SMS == 100 */
+	TIM9->SMCR &= ~(TIM_SMCR_SMS_1 | TIM_SMCR_SMS_0);
+	TIM9->SMCR |= (TIM_SMCR_SMS_2);
+
+//	/* configure TIM9 in gated mode SMS == 101 */
+//	TIM9->SMCR &= ~TIM_SMCR_SMS_1;
+//	TIM9->SMCR |= (TIM_SMCR_SMS_2 | TIM_SMCR_SMS_0);
+
+//	/* configure TIM9 in trigger mode SMS == 101 */
+//	TIM9->SMCR &= ~TIM_SMCR_SMS_0;
+//	TIM9->SMCR |= (TIM_SMCR_SMS_2 | TIM_SMCR_SMS_1);
+
+
 //================================ PWM mode 1 on output ==============
+	TIM9->PSC |= 1;
+
 	TIM9->ARR &= 0;
 	TIM9->ARR |= 1567;
 	/* configure timer to enable auto-reload
 	 * and choose direction downcount */
 	TIM9->CR1 |= TIM_CR1_ARPE;
 	/* provide capture value for channel 1 */
-	TIM9->CCR1 |= 1276;
-	/* choose OC1 to work in PWM generation mode 1 */
+	TIM9->CCR1 |= 1279;
+
 	TIM9->CCMR1 &= ~(TIM_CCMR1_OC1M_0);
 	TIM9->CCMR1 |= (TIM_CCMR1_OC1M_1 | TIM_CCMR1_OC1M_2);
+
+
+//	/* set force inactive mode on initialization */
+//	TIM9->CCMR1 &= ~(TIM_CCMR1_OC1M_1 | TIM_CCMR1_OC1M_0);
+//	TIM9->CCMR1 |= TIM_CCMR1_OC1M_2;
+
+
+	/* enable fast output change on compare - just in pwm mode 1 or 2*/
+	TIM9->CCMR1 |= TIM_CCMR1_OC1FE;
 	/* enable preload register */
 	TIM9->CCMR1 |= TIM_CCMR1_OC1PE;
+
 	/* select activity high polarity */
 	TIM9->CCER &= ~(TIM_CCER_CC1P);
+
 	/* enable the output */
 	TIM9->CCER |= TIM_CCER_CC1E;
 	/* enable interrupt event on compare channel 1 */
 	TIM9->EGR |= TIM_EGR_CC1G | TIM_EGR_UG;
-	//=========================== END PWM MODE TEST ==================
+//=============================== END PWM MODE TEST ==================
 	/* enable TIM9 to count */
-	TIM9->CR1 |= TIM_CR1_CEN;
+	//TIM9->CR1 |= TIM_CR1_CEN;
 
 // ================================= COMPARE MODE ==================
 //	TIM9->ARR &= 0;
@@ -261,10 +290,20 @@ void TIM3_IRQHandler(void)
 		if(flag == 0)
 		{
 			TIM3->CCR1 &= 0;
-			TIM3->CCR1 |= 479;
+			TIM3->CCR1 |= 499;
+
 			/* set inactive level on TRGO on compare match OC1M == 010*/
 			TIM3->CCMR1 &= ~(TIM_CCMR1_OC1M_0 | TIM_CCMR1_OC1M_2);
 			TIM3->CCMR1 |= TIM_CCMR1_OC1M_1;
+
+//			TIM9->CCER |= TIM_CCER_CC1E;
+
+//			/* choose OC1 to work in PWM generation mode 1 */
+//			TIM9->CCMR1 &= ~(TIM_CCMR1_OC1M_0);
+//			TIM9->CCMR1 |= (TIM_CCMR1_OC1M_1 | TIM_CCMR1_OC1M_2);
+//
+			TIM9->CR1 |= TIM_CR1_CEN;
+
 			flag = 1;
 		}
 		else
@@ -274,6 +313,15 @@ void TIM3_IRQHandler(void)
 			/* set active level on TRGO on compare match OC1M == 010*/
 			TIM3->CCMR1 &= ~(TIM_CCMR1_OC1M_1 | TIM_CCMR1_OC1M_2);
 			TIM3->CCMR1 |= TIM_CCMR1_OC1M_0;
+
+//			TIM9->CCER &= ~TIM_CCER_CC1E;
+
+			TIM9->CR1 &= ~TIM_CR1_CEN;
+
+//			// DEBUG force inactive
+//			TIM9->CCMR1 &= ~(TIM_CCMR1_OC1M_1 | TIM_CCMR1_OC1M_0);
+//			TIM9->CCMR1 |= TIM_CCMR1_OC1M_2;
+
 			flag = 0;
 		}
 	TIM_ClearITPendingBit(TIM3, TIM_IT_CC1);
@@ -367,17 +415,17 @@ int main(void)
     //i2c_init();
     //camera_init();
     //dma_init();
-    //c = I2C_readreg(0x0a);
+    c = I2C_readreg(0x0a);
     NVIC_EnableIRQ(TIM3_IRQn);
+
+//    TIM9->CR1 |= TIM_CR1_CEN;
     TIM3->CR1 |= TIM_CR1_CEN;
 
-//    if(c == 0x76)
-//    {
-//        ov7670_init();
-//        TIM9->CR1 |= TIM_CR1_CEN;
-//        NVIC_EnableIRQ(TIM1_BRK_TIM9_IRQn);
-//        GPIO_SetBits(GPIOD, GPIO_Pin_13);
-//    }
+    if(c == 0x76)
+    {
+        ov7670_init();
+        GPIO_SetBits(GPIOD, GPIO_Pin_13);
+    }
 
 //    DMA_Cmd(DMA2_Stream2, ENABLE);
 
